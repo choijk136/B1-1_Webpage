@@ -10,6 +10,7 @@ const themeIcon = document.querySelector(".theme-icon");
 const scrollTopButton = document.querySelector(".scroll-top");
 const projectStatus = document.querySelector(".project-status");
 const projectGrid = document.querySelector(".project-grid");
+const projectFilters = document.querySelector(".project-filters");
 const contactForm = document.querySelector(".contact-form");
 const formSuccess = document.querySelector(".form-success");
 
@@ -17,6 +18,7 @@ const state = {
   theme: localStorage.getItem("theme") || "light",
   projects: [],
   projectStatus: "idle",
+  activeLanguage: "All",
   formErrors: {}
 };
 
@@ -81,6 +83,28 @@ const formatDate = (dateString) => new Intl.DateTimeFormat("ko-KR", {
   day: "numeric"
 }).format(new Date(dateString));
 
+const getProjectLanguage = ({ language }) => language || "기타";
+
+const renderProjectFilters = () => {
+  const languages = [...new Set(state.projects.map(getProjectLanguage))]
+    .sort((first, second) => first.localeCompare(second));
+  const filters = ["All", ...languages];
+
+  projectFilters.innerHTML = filters.map((language) => {
+    const label = language === "All" ? "전체" : language;
+    const isActive = state.activeLanguage === language;
+    return `<button class="filter-button${isActive ? " active" : ""}" type="button" data-language="${escapeHTML(language)}" aria-pressed="${isActive}">${escapeHTML(label)}</button>`;
+  }).join("");
+
+  projectFilters.querySelectorAll(".filter-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      state.activeLanguage = button.dataset.language;
+      renderProjectFilters();
+      renderProjects();
+    });
+  });
+};
+
 const renderProjects = () => {
   projectGrid.innerHTML = "";
 
@@ -101,7 +125,16 @@ const renderProjects = () => {
   }
 
   projectStatus.innerHTML = "";
-  projectGrid.innerHTML = state.projects.map((project) => {
+  const filteredProjects = state.activeLanguage === "All"
+    ? state.projects
+    : state.projects.filter((project) => getProjectLanguage(project) === state.activeLanguage);
+
+  if (!filteredProjects.length) {
+    projectStatus.innerHTML = '<div class="status-panel"><p>선택한 언어의 프로젝트가 없습니다.</p></div>';
+    return;
+  }
+
+  projectGrid.innerHTML = filteredProjects.map((project) => {
     const { name, description, html_url: url, language, stargazers_count: stars, forks_count: forks, updated_at: updatedAt } = project;
     return `
       <article class="project-card">
@@ -122,6 +155,7 @@ const renderProjects = () => {
 
 async function fetchProjects() {
   state.projectStatus = "loading";
+  projectFilters.innerHTML = "";
   renderProjects();
 
   try {
@@ -132,10 +166,15 @@ async function fetchProjects() {
 
     const data = await response.json();
     state.projects = data;
+    state.activeLanguage = "All";
     state.projectStatus = data.length ? "success" : "empty";
   } catch (error) {
     console.error(error);
     state.projectStatus = "error";
+  }
+
+  if (state.projectStatus === "success") {
+    renderProjectFilters();
   }
 
   renderProjects();
