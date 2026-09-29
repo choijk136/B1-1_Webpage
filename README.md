@@ -20,12 +20,13 @@
 - Contact 폼 필수값·이메일 형식 검사와 필드별 오류 표시
 - `fetch`와 `async/await`를 사용한 GitHub API 연동
 - 프로젝트 로딩·성공·오류·빈 상태별 UI 렌더링과 오류 시 재시도
+- GitHub 저장소 언어 필터: 선택한 언어를 `filter()`로 추린 뒤 `map()`으로 카드 생성
 
 ## 사용 기술
 
 - HTML5: 시맨틱 마크업, 접근성 속성, 폼 구조
 - CSS3: CSS 변수, Flexbox, Grid, transition, 모바일 퍼스트 미디어 쿼리
-- JavaScript ES6+: DOM API, 이벤트, 화살표 함수, 구조분해 할당, 템플릿 리터럴, `map`·`forEach`, `fetch`, `async/await`, `try/catch`
+- JavaScript ES6+: DOM API, 이벤트, 화살표 함수, 구조분해 할당, 템플릿 리터럴, `map`·`filter`·`forEach`, `fetch`, `async/await`, `try/catch`
 - GitHub REST API: `GET /users/choijk136/repos`
 - GitHub Actions & Pages: 정적 사이트 자동 배포
 
@@ -35,6 +36,7 @@
 2. GitHub API 호출 → `state.projectStatus`가 loading/success/error/empty로 변경 → Projects 상태 UI 갱신
 3. 폼 `input`·`submit` 이벤트 → `state.formErrors` 변경 → 필드 오류 또는 성공 메시지 갱신
 4. 햄버거 버튼 클릭 → 메뉴의 활성 상태 변경 → 메뉴·버튼 클래스와 접근성 속성 갱신
+5. 언어 필터 버튼 클릭 → `state.activeLanguage` 변경 → `filter()` 후 프로젝트 카드 재렌더링
 
 ## 구현 기준값
 
@@ -92,3 +94,5 @@ GitHub API는 인증 없이 시간당 60회로 제한됩니다. 짧은 시간에
 페이지의 큰 영역은 목적을 드러내도록 `header`, `nav`, `main`, `section`, `article`, `footer`로 구분했습니다. 한 방향 정렬이 중요한 네비게이션과 버튼 그룹은 Flexbox를 사용했고, 화면 너비에 따라 카드 열 개수가 달라지는 Projects 영역은 `repeat(auto-fit, minmax(...))` Grid를 사용했습니다.
 
 프로젝트 데이터는 요청 전에 loading 상태로 바꾸고, 응답 결과에 따라 success 또는 empty 상태를 선택합니다. 네트워크 오류나 API 레이트 리밋은 `catch`에서 error 상태로 전환합니다. 각 상태 변경 후 같은 렌더 함수가 DOM을 갱신하므로 데이터 흐름을 한곳에서 확인할 수 있습니다.
+
+API 호출이 성공하면 저장소의 언어 목록으로 필터 버튼을 만듭니다. 사용자가 버튼을 선택하면 `state.activeLanguage`가 변경되고, `state.projects.filter(...).map(...)` 순서로 선택 언어의 카드만 다시 렌더링합니다.
